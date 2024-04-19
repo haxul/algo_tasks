@@ -39,7 +39,7 @@ class ThreadPool {
                             return;
                         }
 
-                        handler = std::move(tasks_.front());
+                        handler = tasks_.front();
                         tasks_.pop();
                     }
 
