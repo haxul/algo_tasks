@@ -24,6 +24,11 @@ class ServerSocket {
         if (fd_ < 0) {
             throw "cannot create socket";
         }
+        const int enable = 1;
+        if (setsockopt(fd_, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+            throw "setsockopt(SO_REUSEADDR) failed";
+        }
+
         int bindStatus = bind(fd_, (struct sockaddr*)&addr_, sizeof(addr_));
         if (bindStatus < 0) {
             throw "Error binding socket to local address";

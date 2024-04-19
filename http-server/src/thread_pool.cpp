@@ -5,13 +5,15 @@
 #include <queue>
 #include <thread>
 
+#include "http_handler.cpp"
+
 using namespace std;
 
 class ThreadPool {
    private:
     vector<thread> threads_;
 
-    queue<function<void()> > tasks_;
+    queue<HttpHandler*> tasks_;
 
     size_t num_threads_;
 
@@ -26,7 +28,7 @@ class ThreadPool {
         for (size_t i = 0; i < num_threads; ++i) {
             threads_.emplace_back([this] {
                 while (true) {
-                    function<void()> task;
+                    HttpHandler* handler;
                     {
                         unique_lock<mutex> lock(queue_mutex_);
 
@@ -37,11 +39,12 @@ class ThreadPool {
                             return;
                         }
 
-                        task = std::move(tasks_.front());
+                        handler = std::move(tasks_.front());
                         tasks_.pop();
                     }
 
-                    task();
+                    handler->run();
+                    delete handler;
                 }
             });
         }
@@ -60,10 +63,10 @@ class ThreadPool {
         }
     }
 
-    void Enqueue(function<void()> task) {
+    void Enqueue(HttpHandler* handler) {
         {
             unique_lock<std::mutex> lock(queue_mutex_);
-            tasks_.emplace(std::move(task));
+            tasks_.emplace(handler);
         }
         cv_.notify_one();
     }

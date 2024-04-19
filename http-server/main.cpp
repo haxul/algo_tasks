@@ -17,13 +17,14 @@
 #include <string>
 
 #include "src/server_socket.cpp"
+#include "src/thread_pool.cpp"
 
-using namespace std;
 
-int main(int argc, char *argv[]) {
+int main() {
+    ThreadPool pool(10);
+
     ServerSocket ss(3000);
 
-    char buf[1024] = {0};
 
     while (true) {
         sockaddr_in new_sock_addr;
@@ -33,14 +34,8 @@ int main(int argc, char *argv[]) {
                       << "\n";
             continue;
         }
-        while (true) {
-            memset(&buf, 0, sizeof(buf));
-            int read = recv(socket, (char *)&buf, sizeof(buf), 0);
-            if (read == 0) {
-                break;
-            }
-            std::cout << "socket got: " << buf << '\n';
-        }
+        auto handler = new HttpHandler(socket);
+        pool.Enqueue(handler);
     }
 
     return 0;
