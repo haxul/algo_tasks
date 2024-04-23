@@ -1,8 +1,31 @@
 #include <queue>
 #include <vector>
 
-
 using namespace std;
+
+class ListNode {
+   public:
+    int val;
+    ListNode* next;
+    ListNode(int x) : val(x), next(NULL) {}
+
+    ~ListNode() { delete next; }
+};
+
+ListNode* buildLL(vector<int>& v) {
+    ListNode dummy(-1);
+
+    ListNode* cur = &dummy;
+
+    for (int i = 0; i < ssize(v); i++) {
+        cur->next = new ListNode(v[i]);
+        cur = cur->next;
+    }
+
+    ListNode* ret = dummy.next;
+    dummy.next = nullptr;
+    return ret;
+}
 
 class TreeNode {
    public:
