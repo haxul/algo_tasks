@@ -16,36 +16,25 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+
+#include "./http_method_processor.cpp"
+#include "./http_req.cpp"
+#include "./http_resp.cpp"
+
 #define NEW_LINE_SIZE 2;
 #define BUF_SIZE 1024 * 8
-
-class HttpRequest {
-   public:
-    std::string path;
-    std::string method;
-    std::string protocol_version;
-    std::unordered_map<std::string, std::string> headers;
-    std::string body;
-
-    HttpRequest(HttpRequest& req) { std::cout << "copy" << '\n'; }
-
-    HttpRequest() { std::cout << "created" << '\n'; }
-
-    ~HttpRequest() { std::cout << "deleted" << '\n'; }
-};
 
 class HttpHandler {
    private:
     int socket_;
+    MethodContainer* method_container;
 
    public:
     HttpHandler() {}
-    HttpHandler(int socket) : socket_(socket) {
-        std::cout << "create handler"
-                  << "\n";
-    }
+    HttpHandler(int socket, MethodContainer* container)
+        : socket_(socket), method_container(container) {}
 
-    HttpRequest parse(const char* buf, const int size) {
+    HttpRequest Parse(const char* buf, const int size) {
         HttpRequest req;
         int p = 0;
         while (p < size && buf[p] != ' ') {
@@ -84,7 +73,7 @@ class HttpHandler {
             req.headers[std::move(header_name)] = std::move(header_val);
             p += NEW_LINE_SIZE;
         }
-        //body
+        // body
         p += NEW_LINE_SIZE;
         while (p < size) {
             req.body += buf[p++];
@@ -93,9 +82,9 @@ class HttpHandler {
         return req;
     }
 
-    void run() {
+    void Run() {
         char buf[BUF_SIZE];
-
+        int sent_bytes;
         while (true) {
             memset(buf, 0, sizeof(buf));
             const int read = recv(socket_, (char*)&buf, sizeof(buf), 0);
@@ -103,9 +92,27 @@ class HttpHandler {
                 break;
             }
 
-            const HttpRequest req = this->parse(buf, read);
+            HttpRequest req = this->Parse(buf, read);
+            HttpMethodProcessor* processor =
+                method_container->Get(req.method, req.path);
 
+            if (processor == nullptr) {
+                char* resp = "HTTP/1.1 404 NOT_FOUND\r\nConnection: close";
+                send(this->socket_, resp, strlen(resp), 0);
+                close(socket_);
+                return;
+            }
+
+            auto response = processor->process(req);
+
+            char buf[] =
+                "HTTP/1.1 200 OK\r\nContent-type: plain/text\r\nConnection: "
+                "close\r\n\r\nhello world";
+
+            sent_bytes = send(this->socket_, buf, strlen(buf), 0);
             std::cout << "socket got: " << buf << '\n';
+            close(socket_);
+            break;
         }
     }
 

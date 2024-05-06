@@ -1,3 +1,7 @@
+#ifndef SERVER_SOCKET 
+#define SERVER_SOCKET 
+
+
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
@@ -45,3 +49,6 @@ class ServerSocket {
 
     int GetPort() { return port_; }
 };
+
+
+#endif

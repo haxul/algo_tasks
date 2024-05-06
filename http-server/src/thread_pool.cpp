@@ -1,3 +1,6 @@
+#ifndef THREAD_POOL
+#define THREAD_POOL
+
 #include <condition_variable>
 #include <functional>
 #include <iostream>
@@ -43,7 +46,7 @@ class ThreadPool {
                         tasks_.pop();
                     }
 
-                    handler->run();
+                    handler->Run();
                     delete handler;
                 }
             });
@@ -71,3 +74,5 @@ class ThreadPool {
         cv_.notify_one();
     }
 };
+
+#endif
